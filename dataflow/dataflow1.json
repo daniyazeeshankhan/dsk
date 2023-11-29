@@ -26,6 +26,13 @@
 						"type": "LinkedServiceReference"
 					},
 					"name": "sink1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "lssqlgit",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink2"
 				}
 			],
 			"transformations": [
@@ -40,6 +47,21 @@
 				},
 				{
 					"name": "select3"
+				},
+				{
+					"name": "lookup1"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "select4"
+				},
+				{
+					"name": "alterRow1"
 				}
 			],
 			"scriptLines": [
@@ -89,6 +111,23 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select3",
+				"select1, select2 lookup(src_Cusid == trg_custid,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup1",
+				"lookup1 derive(isupdated = iif\r",
+				"(src_name!=trg_name || src_location!=trg_location, 1,0)\r",
+				") ~> derivedColumn1",
+				"derivedColumn1 filter(isupdated == 1) ~> filter1",
+				"filter1 select(mapColumn(",
+				"          Custkey,",
+				"          Cusid = src_Cusid,",
+				"          name = src_name,",
+				"          location = src_location",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select4",
+				"select4 alterRow(updateIf(1 == 1)) ~> alterRow1",
 				"select3 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
@@ -112,7 +151,33 @@
 				"          Cusid,",
 				"          name,",
 				"          location",
-				"     )) ~> sink1"
+				"     )) ~> sink1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Custkey as integer,",
+				"          custid as integer,",
+				"          name as string,",
+				"          location as string",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dbo',",
+				"     tableName: 'dimcustomer',",
+				"     insertable: false,",
+				"     updateable: true,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     keys:['Custkey'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          Custkey,",
+				"          custid = Cusid,",
+				"          name,",
+				"          location",
+				"     )) ~> sink2"
 			]
 		}
 	}
