@@ -174,7 +174,7 @@
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
 				"          Custkey,",
-				"          custid = Cusid,",
+				"          Cusid,",
 				"          name,",
 				"          location",
 				"     )) ~> sink2"
