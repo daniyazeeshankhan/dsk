@@ -10,10 +10,38 @@
 						"type": "DatasetReference"
 					},
 					"name": "customersource"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "target"
 				}
 			],
-			"sinks": [],
-			"transformations": [],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "lssqlgit",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "exists1"
+				},
+				{
+					"name": "select3"
+				}
+			],
 			"scriptLines": [
 				"source(output(",
 				"          Cusid as integer,",
@@ -24,7 +52,67 @@
 				"     validateSchema: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     query: 'Select * from customer\\n',",
-				"     format: 'query') ~> customersource"
+				"     format: 'query') ~> customersource",
+				"source(output(",
+				"          Custkey as integer,",
+				"          custid as integer,",
+				"          name as string,",
+				"          location as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'Select * from dimcustomer\\n',",
+				"     format: 'query') ~> target",
+				"customersource select(mapColumn(",
+				"          src_Cusid = Cusid,",
+				"          src_name = name,",
+				"          src_location = location",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"target select(mapColumn(",
+				"          Custkey,",
+				"          trg_custid = custid,",
+				"          trg_name = name,",
+				"          trg_location = location",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select1, select2 exists(src_Cusid == trg_custid,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> exists1",
+				"exists1 select(mapColumn(",
+				"          Cusid = src_Cusid,",
+				"          name = src_name,",
+				"          location = src_location",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select3",
+				"select3 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Custkey as integer,",
+				"          custid as integer,",
+				"          name as string,",
+				"          location as string",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dbo',",
+				"     tableName: 'dimcustomer',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          Cusid,",
+				"          name,",
+				"          location",
+				"     )) ~> sink1"
 			]
 		}
 	}
