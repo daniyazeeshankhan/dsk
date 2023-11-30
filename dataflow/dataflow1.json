@@ -1,0 +1,73 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "dssql",
+						"type": "DatasetReference"
+					},
+					"name": "customersource"
+				},
+				{
+					"dataset": {
+						"referenceName": "dssql",
+						"type": "DatasetReference"
+					},
+					"name": "dimcustomersource"
+				}
+			],
+			"sinks": [],
+			"transformations": [
+				{
+					"name": "selectsrc"
+				},
+				{
+					"name": "selecttrg"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CustomerID as integer,",
+				"          Fname as string,",
+				"          Location as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'SELECT * FROM customer\\n',",
+				"     format: 'query') ~> customersource",
+				"source(output(",
+				"          Custkey as integer,",
+				"          CustomerID as integer,",
+				"          Fname as string,",
+				"          Location as string,",
+				"          StartDate as date,",
+				"          EndDate as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'SELECT * FROM dimcustomer\\n',",
+				"     format: 'query') ~> dimcustomersource",
+				"customersource select(mapColumn(",
+				"          src_CustomerID = CustomerID,",
+				"          src_Fname = Fname,",
+				"          src_Location = Location",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectsrc",
+				"dimcustomersource select(mapColumn(",
+				"          Custkey,",
+				"          trg_CustomerID = CustomerID,",
+				"          trg_Fname = Fname,",
+				"          trg_Location = Location",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selecttrg"
+			]
+		}
+	}
+}
