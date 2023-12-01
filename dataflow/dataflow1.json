@@ -26,6 +26,13 @@
 						"type": "LinkedServiceReference"
 					},
 					"name": "sink1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "AzureSqlDatabase1",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink2"
 				}
 			],
 			"transformations": [
@@ -166,7 +173,33 @@
 				"          Fname,",
 				"          Location,",
 				"          StartDate",
-				"     )) ~> sink1"
+				"     )) ~> sink1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Custkey as integer,",
+				"          CustomerID as integer,",
+				"          Fname as string,",
+				"          Location as string,",
+				"          StartDate as date,",
+				"          EndDate as date",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dbo',",
+				"     tableName: 'dimcustomer',",
+				"     insertable: false,",
+				"     updateable: true,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     keys:['Custkey'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          Custkey,",
+				"          EndDate",
+				"     )) ~> sink2"
 			]
 		}
 	}
